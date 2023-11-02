@@ -48,30 +48,58 @@ prep() {
 }
 
 get_name() {
-    local name=$(curl -sS https://random-word-api.herokuapp.com/word | jq ".[0]" 2>/dev/null) 
+    #local name=$(curl -sS https://random-word-api.herokuapp.com/word | jq ".[0]" 2>/dev/null) 
+    local name=$(curl -sS https://random-word-api.vercel.app/api | jq ".[0]" 2>/dev/null)
     echo "$name" | tr -d '"'
 }
 
+get_names() {
+    #local names=($(curl -Ss https://random-word-api.herokuapp.com/word\?number=$1 | jq -r ".[]" | tr '\n' ' ' 2>/dev/null))
+    local names=($(curl -Ss https://random-word-api.vercel.app/api?words=$1 | jq -r ".[]" | tr '\n' ' ' 2>/dev/null))
+    echo "${names[@]}"
+}
+
+# One input, namespace name
 add_userpass_user() {
     echo ""
 }
 
+# One input, namespace name
 add_approle_user() {
     echo ""
 }
 
+# One input, namespace name
+populate_auth() {
+    # create userpass mount
+    VAULT_NAMESPACE=$1 vault auth enable userpass >/dev/null 2>&1
+    # create approle mount 
+    VAULT_NAMESPACE=$1 vault auth enable approle >/dev/null 2>&1
+}
+
 
 prep $1 $2
-# Build the namespace list
-TOPLVLNS=()
-for ((i = 0 ; i < $NSWIDTH ; i++)); do
-  TOPLVLNS[$i]=$(get_name)
-done
 
-#echo "${TOPLVLNS[@]}"
+#Build the namespace list - old
+#TOPLVLNS=()
+#for ((i = 0 ; i < $NSWIDTH ; i++)); do
+#  TOPLVLNS[$i]=$(get_name)
+#done
+
+# Build the namespace list
+TOPLVLNS=($(get_names $NSWIDTH))
+
 for i in "${TOPLVLNS[@]}"; do
-  #vault namespace create "$i" >/dev/null 2>&1
-  echo $i
+  vault namespace create "$i" >/dev/null 2>&1
+  echo "Created namespace $i"
+  populate_auth "$i"
+  # build and populate child namespaces
+  CHILDNS=($(get_names $NSDEPTH))
+  for j in "${CHILDNS[@]}"; do
+    VAULT_NAMESPACE=$i vault namespace create "$j" >/dev/null 2>&1
+    echo "Created namespace $i/$j"
+    populate_auth "$i/$j"
+  done
 done
 
 # Build the namespaces
