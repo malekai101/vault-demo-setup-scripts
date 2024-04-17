@@ -59,6 +59,17 @@ prepare_kmip() {
     vault write olympia/scope/upper/role/zeus operation_all=true >/dev/null 2>&1
     vault write -format=json olympia/scope/upper/role/zeus/credential/generate format=pem >/dev/null 2>&1
 
+    # A new namespace
+    vault namespace create doors >/dev/null 2>&1
+    VAULT_NAMESPACE=doors vault secrets enable kmip >/dev/null 2>&1
+    VAULT_NAMESPACE=doors vault write -f kmip/scope/band >/dev/null 2>&1
+    VAULT_NAMESPACE=doors vault write kmip/config listen_addrs=0.0.0.0:5699 server_hostnames=0.0.0.0 >/dev/null 2>&1
+    VAULT_NAMESPACE=doors vault write -f kmip/scope/band >/dev/null 2>&1
+    VAULT_NAMESPACE=doors vault write kmip/scope/band/role/jim operation_all=true >/dev/null 2>&1
+    VAULT_NAMESPACE=doors vault write -format=json kmip/scope/band/role/jim/credential/generate format=pem >/dev/null 2>&1
+    VAULT_NAMESPACE=doors vault write kmip/scope/band/role/ray operation_all=true >/dev/null 2>&1
+    VAULT_NAMESPACE=doors vault write -format=json kmip/scope/band/role/ray/credential/generate format=pem >/dev/null 2>&1
+
 }
 
 main() {
