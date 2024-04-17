@@ -59,6 +59,10 @@ prepare_kmip() {
     vault write olympia/scope/upper/role/zeus operation_all=true >/dev/null 2>&1
     vault write -format=json olympia/scope/upper/role/zeus/credential/generate format=pem >/dev/null 2>&1
 
+    # Alternate mount path in root namespace with no roles
+    vault secrets enable -path=carolina kmip >/dev/null 2>&1
+    vault write carolina/config listen_addrs=0.0.0.0:5698 server_hostnames=0.0.0.0 >/dev/null 2>&1
+
     # A new namespace
     vault namespace create doors >/dev/null 2>&1
     VAULT_NAMESPACE=doors vault secrets enable kmip >/dev/null 2>&1
